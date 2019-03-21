@@ -25,6 +25,6 @@ def addport(port, quota):
 @click.option('-n', '--line-number', required=True, help='行编号')
 def delport(line_number):
     os.system('sudo iptables -D OUTPUT %i' % int(line_number))
-
+    os.system('sudo iptables -L OUTPUT -nv --line-number')
 if __name__ == '__main__':
     cli()
