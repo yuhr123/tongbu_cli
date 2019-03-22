@@ -25,11 +25,14 @@ def list():
                 cmd = 'sudo iptables -L -nv --line-number'
             elif select_chain == 3:
                 list_cmd = 'sudo iptables -nv -L | grep \'Chain TQ\''
-                list_chain = subprocess.run(list_cmd.split(), capture_output=True)
-                if list_chain.returncode:
-                    click.echo('未找到流量限额相关的链！')
-                else:
-                    click.echo(list_chain.stdout)
+                os.system(list_cmd)
+                # list_cmd = ['sudo', 'iptables', '-nv', '-L', '| grep "Chain TQ"']
+                # list_chain = subprocess.run(list_cmd, capture_output=True)
+                # if list_chain.returncode:
+                #     click.echo(list_chain.stderr)
+                #     click.echo('未找到流量限额相关的链！')
+                # else:
+                #     click.echo(list_chain.stdout)
                 the_chain = click.prompt('请输入要查看的链名')
                 cmd = 'sudo iptables -L %s -nv --line-number' % the_chain
             else:
