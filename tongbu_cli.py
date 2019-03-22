@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import click, os
+import click, os, subprocess
 
 @click.group()
 def cli():
@@ -7,7 +7,19 @@ def cli():
 
 @cli.command()
 def list():
-    os.system('sudo iptables -L OUTPUT -nv --line-number')
+    chains = ['INPUT', 'OUTPUT']
+
+    while True:
+        if click.confirm('开始查看链上的记录？'):
+            for n, c in enumerate(chains):
+                entry = str(n) + ' - ' + c
+                click.echo(entry)
+            select_chain = click.prompt('请选择要查看的链编号', default=1, type=int)
+            cmd = ['sudo', 'iptables', '-L', chains[select_chain], '-nv', '--line-number']
+            subprocess.run(cmd)
+        else:
+            break
+
 
 @cli.command()
 @click.option('-p', '--port', 'port', required=True ,help='监控的端口号')
@@ -44,5 +56,10 @@ def delport():
         else:
             click.echo('Bye!')
             break
+
+# @cli.command()
+# def add():
+#     subprocess.run()
+
 if __name__ == '__main__':
     cli()
