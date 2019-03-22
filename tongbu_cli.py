@@ -13,7 +13,7 @@ def cli():
 @cli.command()
 def list():
     """查看指定链上的规则"""
-    chains = ['ALL', 'INPUT', 'OUTPUT']
+    chains = ['ALL', 'INPUT', 'OUTPUT', '自定义']
 
     while True:
         if click.confirm('开始查看链上的记录？'):
@@ -23,6 +23,15 @@ def list():
             select_chain = click.prompt('请选择要查看的链编号', default=0, type=int)
             if select_chain == 0:
                 cmd = 'sudo iptables -L -nv --line-number'
+            elif select_chain == 3:
+                list_cmd = 'sudo iptables -nv -L | grep \'Chain TQ\''
+                list_chain = subprocess.run(list_cmd.split(), capture_output=True)
+                if list_chain.returncode:
+                    click.echo('未找到流量限额相关的链！')
+                else:
+                    click.echo(list_chain.stdout)
+                the_chain = click.prompt('请输入要查看的链名')
+                cmd = 'sudo iptables -L %s -nv --line-number' % the_chain
             else:
                 cmd = 'sudo iptables -L %s -nv --line-number' % chains[select_chain]
             subprocess.run(cmd.split())
