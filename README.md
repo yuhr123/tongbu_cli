@@ -1,6 +1,17 @@
 # tongbu_cli
 
-功能需求：
+此工具用于 iptables 端口流量统计和流量限额的创建和管理
 
-- 为指定的端口设置防火墙规则
-- 为指定的端口设置流量配额
+### 安装
+
+```shell
+$ git clone https://github.com/yuhr123/tongbu_cli.git
+$ cd tongbu_cli
+$ pip install .
+```
+
+### 使用
+
+```shell
+$ tongbu_cli
+```

@@ -1,13 +1,26 @@
 #!/usr/bin/env python
-import click, os, subprocess
+import click
+import os
+import subprocess
+
 
 @click.group()
 def cli():
+    """本工具用于 iptables 的端口流量监控规则管理"""
     pass
+
 
 @cli.command()
 def list():
-    chains = ['INPUT', 'OUTPUT', 'TRAFFIC_QUOTA']
+    """查看指定链上的规则"""
+    chains = [
+        'INPUT',
+        'OUTPUT',
+        'TRAFFIC_QUOTA_10GB',
+        'TRAFFIC_QUOTA_30GB',
+        'TRAFFIC_QUOTA_60GB',
+        'TRAFFIC_QUOTA_100GB',
+    ]
 
     while True:
         if click.confirm('开始查看链上的记录？'):
@@ -15,50 +28,16 @@ def list():
                 entry = str(n) + ' - ' + c
                 click.echo(entry)
             select_chain = click.prompt('请选择要查看的链编号', default=1, type=int)
-            cmd = ['sudo', 'iptables', '-L', chains[select_chain], '-nv', '--line-number']
+            cmd = ['sudo', 'iptables', '-L',
+                   chains[select_chain], '-nv', '--line-number']
             subprocess.run(cmd)
         else:
             break
 
 
 @cli.command()
-@click.option('-p', '--port', 'port', required=True ,help='监控的端口号')
-@click.option('-q', '--quota', 'quota', required=True, default=10000000000,help='下行流量限额，默认：10GB')
-def addport(port, quota):
-    if click.confirm('是否配置流量限额？'):
-        quota = click.prompt('请输入流量限额(单位 Byte)', default=quota, type=int)
-        try:
-            os.system('sudo iptables -I OUTPUT -p tcp -m multiport --sports %s -j DROP' % port)
-            os.system('sudo iptables -I OUTPUT -p tcp -m multiport --sports %s -m quota --quota %s -j ACCEPT' % (port, str(quota)))
-            os.system('sudo iptables -L OUTPUT -nv --line-number')
-        except Exception as e:
-            click.echo(e)
-    else:
-        try:
-            os.system('sudo iptables -I OUTPUT -p tcp -m multiport --sports %s -j ACCEPT' % port)
-            os.system('sudo iptables -L OUTPUT -nv --line-number')
-        except Exception as e:
-            click.echo(e)
-
-
-@cli.command()
-def delport():
-    os.system('sudo iptables -L OUTPUT -nv --line-number')
-    line_number = click.prompt('请输入要删除的规则编号', type=int)
-    os.system('sudo iptables -D OUTPUT %i' % int(line_number))
-    os.system('sudo iptables -L OUTPUT -nv --line-number')
-    while True:
-        if click.confirm('是否继续删除规则？'):
-            os.system('sudo iptables -L OUTPUT -nv --line-number')
-            line_number = click.prompt('请输入要删除的规则编号', type=int)
-            os.system('sudo iptables -D OUTPUT %i' % int(line_number))
-            os.system('sudo iptables -L OUTPUT -nv --line-number')
-        else:
-            click.echo('Bye!')
-            break
-
-@cli.command()
-def add():
+def addrule():
+    """添加开放端口规则"""
     click.echo('功能初始化...')
     quota_chains = {
         'TRAFFIC_QUOTA_10GB': 10000000000,
@@ -74,14 +53,17 @@ def add():
             click.echo('已存在 %s 链 [跳过]' % k)
         else:
             click.echo('创建 %s 链 [完成]' % k)
-            cmd_quota_1 = 'sudo iptables -A %s -m quota --quota %s -j ACCEPT' % (k, str(v))
+            cmd_quota_1 = 'sudo iptables -A %s -m quota --quota %s -j ACCEPT' % (
+                k, str(v))
             cmd_quota_2 = 'sudo iptables -A %s -j DROP' % k
-            add_quota_accept = subprocess.run(cmd_quota_1.split(), capture_output=True)
+            add_quota_accept = subprocess.run(
+                cmd_quota_1.split(), capture_output=True)
             if add_quota_accept.returncode:
                 click.echo(add_quota_accept.stderr)
             else:
                 click.echo('创建 %s 流量限额接受规则 [完成]' % k)
-            add_auota_drop = subprocess.run(cmd_quota_2.split(), capture_output=True)
+            add_auota_drop = subprocess.run(
+                cmd_quota_2.split(), capture_output=True)
             if add_auota_drop.returncode:
                 click.echo(add_auota_drop.stderr)
             else:
@@ -97,10 +79,13 @@ def add():
                 click.echo(k)
             select_chain = click.prompt('请选择流量限额配置')
 
-            cmd_1 = 'sudo iptables -I INPUT -p tcp -m multiport --sports %s -g %s' % (ports, select_chain)
-            cmd_2 = 'sudo iptables -I OUTPUT -p tcp -m multiport --sports %s -g %s' % (ports, select_chain)
+            cmd_1 = 'sudo iptables -I INPUT -p tcp -m multiport --sports %s -g %s' % (
+                ports, select_chain)
+            cmd_2 = 'sudo iptables -I OUTPUT -p tcp -m multiport --sports %s -g %s' % (
+                ports, select_chain)
 
-            add_ports_input = subprocess.run(cmd_1.split(), capture_output=True)
+            add_ports_input = subprocess.run(
+                cmd_1.split(), capture_output=True)
             if add_ports_input.returncode:
                 click.echo('创建指定端口的入站规则 [失败]')
                 click.echo(add_ports_input.stderr)
@@ -108,7 +93,8 @@ def add():
             else:
                 click.echo('创建指定端口的入站规则 [完成]')
 
-            add_ports_output = subprocess.run(cmd_2.split(), capture_output=True)
+            add_ports_output = subprocess.run(
+                cmd_2.split(), capture_output=True)
             if add_ports_output.returncode:
                 click.echo('创建指定端口的出站规则 [失败]')
                 click.echo(add_ports_output.stderr)
@@ -125,6 +111,33 @@ def add():
 
         else:
             break
+
+
+@cli.command()
+def delrule():
+    """删除指定链上的规则"""
+    chains = ['INPUT', 'OUTPUT']
+    while True:
+        for n, c in enumerate(chains):
+            click.echo(str(n) + ' - ' + c)
+        select_chain = click.prompt('请选择要操作的链编号', default=1, type=int)
+
+        while True:
+            list_cmd = 'sudo iptables -L %s -nv --line-number' % chains[select_chain]
+            subprocess.run(list_cmd.split())
+            if click.confirm('是否要删除规则？'):
+                select_rule = click.prompt('请输入规则编号', type=int)
+                del_cmd = 'sudo iptables -D %s %i' % (
+                    chains[select_chain], select_rule)
+                del_rule = subprocess.run(del_cmd.split(), capture_output=True)
+                if del_rule.returncode:
+                    click.echo(del_rule.stderr)
+                    break
+                else:
+                    click.echo('删除编号为 %i 的规则 [成功]' % select_rule)
+            else:
+                break
+
 
 if __name__ == '__main__':
     cli()
